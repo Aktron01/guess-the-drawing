@@ -1,79 +1,117 @@
 --// Configuration
 local WORD_LIST_URL = "https://raw.githubusercontent.com/Aktron01/words/refs/heads/main/ad"
 local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
+local UserInputService = game:GetService("UserInputService")
 
 --// Variables
 local AllWords = {}
-local CurrentPattern = ""
-local MaxResults = 10
+local MaxResults = 20
+local UIHidden = false
 
 --// 1. Fetch the word list
-print("Downloading word list...")
 local success, content = pcall(function() return game:HttpGet(WORD_LIST_URL) end)
 if success then
     for word in string.gmatch(content:lower(), "[%a]+") do
         table.insert(AllWords, word)
     end
-    print("Loaded " .. #AllWords .. " words!")
-else
-    warn("Failed to download word list.")
 end
 
---// 2. Custom UI System (No Library)
+--// 2. Custom UI System
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "WordSolverUI"
+ScreenGui.Name = "WordSolver_Pro"
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 250, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
+MainFrame.Active = true -- Necessary for dragging
 
 local UICorner = Instance.new("UICorner", MainFrame)
 local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.Color = Color3.fromRGB(70, 70, 70)
 UIStroke.Thickness = 2
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "WORD SOLVER"
+Title.Text = "WORD SOLVER [R-SHIFT]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+Title.TextSize = 14
 
 local Container = Instance.new("ScrollingFrame", MainFrame)
 Container.Size = UDim2.new(1, -20, 1, -60)
 Container.Position = UDim2.new(0, 10, 0, 50)
 Container.BackgroundTransparency = 1
 Container.CanvasSize = UDim2.new(0, 0, 0, 0)
-Container.ScrollBarThickness = 2
+Container.ScrollBarThickness = 3
 Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local Layout = Instance.new("UIListLayout", Container)
 Layout.Padding = UDim.new(0, 5)
 
---// 3. Logic: Match the captured word to the list
+--// 3. Draggable Logic
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+--// 4. Toggle Logic (Right Shift)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.RightShift then
+        UIHidden = not UIHidden
+        MainFrame.Visible = not UIHidden
+    end
+end)
+
+--// 5. Solver Logic
 local function updateSolver(captured)
-    -- Clear previous results
     for _, v in pairs(Container:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
 
-    -- Convert "c _ t" to "c.t" for Lua pattern matching
     local pattern = captured:gsub(" ", ""):gsub("_", "."):lower()
-    local count = 0
+    local found = 0
 
     for _, word in pairs(AllWords) do
         if #word == #pattern and string.match(word, "^" .. pattern .. "$") then
-            count = count + 1
-            if count > MaxResults then break end
+            found = found + 1
+            if found > MaxResults then break end
 
             local Btn = Instance.new("TextButton", Container)
             Btn.Size = UDim2.new(1, 0, 0, 30)
-            Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             Btn.Text = word
-            Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             Btn.Font = Enum.Font.Gotham
             Btn.TextSize = 14
             Instance.new("UICorner", Btn)
@@ -85,8 +123,7 @@ local function updateSolver(captured)
     end
 end
 
---// 4. Hook into the Game Remote
+--// Hook to Remote
 Remotes.word.OnClientEvent:Connect(function(receivedWord)
-    print("New Word Captured: " .. tostring(receivedWord))
     updateSolver(tostring(receivedWord))
 end)
