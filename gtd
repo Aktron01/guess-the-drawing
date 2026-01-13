@@ -1,0 +1,53 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local a;
+local b;
+local Library = loadstring(Game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+local Window = Library:NewWindow("sand on scriptblox")
+local Main = Window:NewSection("Main")
+Main:CreateButton("Print Word", function()
+print(game:GetService("ReplicatedStorage").currentValues.currentWord.Value)
+end)
+Main:CreateButton("Guess Word (me)", function()
+game:GetService("ReplicatedStorage").RemoteEvents.Guess:FireServer(game:GetService("Players").LocalPlayer,game:GetService("ReplicatedStorage").currentValues.currentWord.Value)
+end)
+Main:CreateButton("Guess Word (all)", function()
+for i,v in pairs(game:GetService("Players"):GetPlayers()) do
+game:GetService("ReplicatedStorage").RemoteEvents.Guess:FireServer(v,game:GetService("ReplicatedStorage").currentValues.currentWord.Value)
+end
+end)
+Main:CreateTextbox("Chat (while muted)", function(text)
+game:GetService("TextChatService").ChatInputBarConfiguration.TargetTextChannel:SendAsync(text)
+end)
+Main:CreateButton("Clear Chat", function()
+game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("hi\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\rCleared Chat.")
+end)
+Main:CreateTextbox("Loop Purchase Prompt Player", function(text)
+a=false
+while wait(0.5) do
+if a then
+break
+end
+game:GetService("ReplicatedStorage").RemoteEvents.promptGamepass:FireServer(game.Players:FindFirstChild(text), 927404616)
+end
+end)
+Main:CreateButton("Loop Purchase Prompt Server", function()
+b=false
+while wait(0.5) do
+if b then
+break
+end
+for i, v in pairs(game.Players:GetPlayers()) do
+if v ~= game.Players.LocalPlayer then
+game:GetService("ReplicatedStorage").RemoteEvents.promptGamepass:FireServer(v, 927404616)
+end
+end
+end
+end)
+Main:CreateButton("Stop Loop Purchase Player", function()
+a=true
+end)
+Main:CreateButton("Stop Loop Purchase Server", function()
+b=true
+end)
