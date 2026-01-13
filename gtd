@@ -1,53 +1,92 @@
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
-local a;
-local b;
-local Library = loadstring(Game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
-local Window = Library:NewWindow("sand on scriptblox")
-local Main = Window:NewSection("Main")
-Main:CreateButton("Print Word", function()
-print(game:GetService("ReplicatedStorage").currentValues.currentWord.Value)
-end)
-Main:CreateButton("Guess Word (me)", function()
-game:GetService("ReplicatedStorage").RemoteEvents.Guess:FireServer(game:GetService("Players").LocalPlayer,game:GetService("ReplicatedStorage").currentValues.currentWord.Value)
-end)
-Main:CreateButton("Guess Word (all)", function()
-for i,v in pairs(game:GetService("Players"):GetPlayers()) do
-game:GetService("ReplicatedStorage").RemoteEvents.Guess:FireServer(v,game:GetService("ReplicatedStorage").currentValues.currentWord.Value)
+--// Configuration
+local WORD_LIST_URL = "https://raw.githubusercontent.com/Aktron01/words/refs/heads/main/ad"
+local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
+
+--// Variables
+local AllWords = {}
+local CurrentPattern = ""
+local MaxResults = 10
+
+--// 1. Fetch the word list
+print("Downloading word list...")
+local success, content = pcall(function() return game:HttpGet(WORD_LIST_URL) end)
+if success then
+    for word in string.gmatch(content:lower(), "[%a]+") do
+        table.insert(AllWords, word)
+    end
+    print("Loaded " .. #AllWords .. " words!")
+else
+    warn("Failed to download word list.")
 end
-end)
-Main:CreateTextbox("Chat (while muted)", function(text)
-game:GetService("TextChatService").ChatInputBarConfiguration.TargetTextChannel:SendAsync(text)
-end)
-Main:CreateButton("Clear Chat", function()
-game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("hi\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\rCleared Chat.")
-end)
-Main:CreateTextbox("Loop Purchase Prompt Player", function(text)
-a=false
-while wait(0.5) do
-if a then
-break
+
+--// 2. Custom UI System (No Library)
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "WordSolverUI"
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 250, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+
+local UICorner = Instance.new("UICorner", MainFrame)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.Thickness = 2
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "WORD SOLVER"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+
+local Container = Instance.new("ScrollingFrame", MainFrame)
+Container.Size = UDim2.new(1, -20, 1, -60)
+Container.Position = UDim2.new(0, 10, 0, 50)
+Container.BackgroundTransparency = 1
+Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+Container.ScrollBarThickness = 2
+Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+local Layout = Instance.new("UIListLayout", Container)
+Layout.Padding = UDim.new(0, 5)
+
+--// 3. Logic: Match the captured word to the list
+local function updateSolver(captured)
+    -- Clear previous results
+    for _, v in pairs(Container:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
+    end
+
+    -- Convert "c _ t" to "c.t" for Lua pattern matching
+    local pattern = captured:gsub(" ", ""):gsub("_", "."):lower()
+    local count = 0
+
+    for _, word in pairs(AllWords) do
+        if #word == #pattern and string.match(word, "^" .. pattern .. "$") then
+            count = count + 1
+            if count > MaxResults then break end
+
+            local Btn = Instance.new("TextButton", Container)
+            Btn.Size = UDim2.new(1, 0, 0, 30)
+            Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            Btn.Text = word
+            Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            Btn.Font = Enum.Font.Gotham
+            Btn.TextSize = 14
+            Instance.new("UICorner", Btn)
+
+            Btn.MouseButton1Click:Connect(function()
+                Remotes.Guess:FireServer(game.Players.LocalPlayer, word)
+            end)
+        end
+    end
 end
-game:GetService("ReplicatedStorage").RemoteEvents.promptGamepass:FireServer(game.Players:FindFirstChild(text), 927404616)
-end
-end)
-Main:CreateButton("Loop Purchase Prompt Server", function()
-b=false
-while wait(0.5) do
-if b then
-break
-end
-for i, v in pairs(game.Players:GetPlayers()) do
-if v ~= game.Players.LocalPlayer then
-game:GetService("ReplicatedStorage").RemoteEvents.promptGamepass:FireServer(v, 927404616)
-end
-end
-end
-end)
-Main:CreateButton("Stop Loop Purchase Player", function()
-a=true
-end)
-Main:CreateButton("Stop Loop Purchase Server", function()
-b=true
+
+--// 4. Hook into the Game Remote
+Remotes.word.OnClientEvent:Connect(function(receivedWord)
+    print("New Word Captured: " .. tostring(receivedWord))
+    updateSolver(tostring(receivedWord))
 end)
